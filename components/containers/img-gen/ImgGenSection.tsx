@@ -43,18 +43,13 @@ const ImgGenSection = () => {
   const [prompt, setPrompt] = React.useState("");
   const [prompt_n, setPrompt_N] = React.useState("");
 
-  const handleChangePrompt = (event: SelectChangeEvent) => {
-    setPrompt(event.target.value);
-  };
-  const handleChangePrompt_N = (event: SelectChangeEvent) => {
-    setPrompt_N(event.target.value);
-  };
-
   //----------------Generated Image----------------//
-  const [img_url, setImg_Url] = React.useState(NoneImage);
+  const [img_url, setImg_Url] = React.useState("");
 
   // -------------------------------------------//
-  const [model, setModel] = React.useState("1e60896f-3c26-4296-8ecc-53e2afecc132");
+  const [model, setModel] = React.useState(
+    "1e60896f-3c26-4296-8ecc-53e2afecc132"
+  );
   const [presetStyle, setPresetStyle] = React.useState("DYNAMIC");
   const [depth, setDepth] = React.useState(0.45);
 
@@ -117,7 +112,7 @@ const ImgGenSection = () => {
     }
   };
 
-  const Generate = async() => {
+  const Generate = async () => {
     const formData = new FormData();
     formData.append("prompt", prompt);
     formData.append("negative_prompt", prompt_n);
@@ -130,17 +125,18 @@ const ImgGenSection = () => {
     // Append init_image and isInit_Image
 
     await axios
-        .post("http://localhost:5000/api/image/leonardo", formData, {})
-        .then((response) => {
-          setImg_Url(response.data);
-        })
-        .catch((err) => {
-          console.error(err);
-          // setNetworkError("Network Error! Please try again later.");
-        });
+      .post("http://localhost:5000/api/image/leonardo", formData, {})
+      .then((response) => {
+        console.log("response------------->", response.data.result);
+        setImg_Url(response.data.result);
+      })
+      .catch((err) => {
+        console.error(err);
+        // setNetworkError("Network Error! Please try again later.");
+      });
   };
 
-  // console.log("style---------->", style);
+  console.log("prompt---------->", prompt);
   // console.log("prompt_n---------->", prompt_n);
 
   return (
@@ -241,7 +237,11 @@ const ImgGenSection = () => {
                   MenuProps={MenuProps}
                 >
                   {presetStyles.map((it, index) => {
-                    return <MenuItem key={index} value={it}>{it}</MenuItem>;
+                    return (
+                      <MenuItem key={index} value={it}>
+                        {it}
+                      </MenuItem>
+                    );
                   })}
                 </Select>
               </FormControl>
@@ -377,7 +377,7 @@ const ImgGenSection = () => {
                       color: "white",
                     },
                   }}
-                  onChange={()=>{handleChangePrompt}}
+                  onChange={(e) => setPrompt(e.target.value)}
                 />
               </div>
               <div className="col-12 col-lg-2">
@@ -402,7 +402,7 @@ const ImgGenSection = () => {
                       color: "white",
                     },
                   }}
-                  onChange={()=>{handleChangePrompt_N}}
+                  onChange={(e) => setPrompt_N(e.target.value)}
                 />
               </div>
               <div className="col-12 col-lg-12">
@@ -418,10 +418,9 @@ const ImgGenSection = () => {
                   </Button>
                 </div>
                 <div style={{ display: "flex", justifyContent: "center" }}>
-                  <Image
-                    src={img_url}
+                  <img
+                    src={img_url == ""?"http://localhost:5000/files/blank-image.png":img_url}
                     alt="Image"
-                    priority
                     style={{
                       width: "auto",
                       height: "50%",
@@ -440,13 +439,13 @@ const ImgGenSection = () => {
 };
 
 type Model = {
-  id : Number,
-  modelName: string,
-  modelImage: StaticImageData,
-  modelId: string
-}
+  id: Number;
+  modelName: string;
+  modelImage: StaticImageData;
+  modelId: string;
+};
 
-const models:Model[] = [
+const models: Model[] = [
   {
     id: 1,
     modelName: "Leonardo Diffusion XL",
