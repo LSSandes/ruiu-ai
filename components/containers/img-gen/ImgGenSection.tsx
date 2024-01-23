@@ -1,8 +1,9 @@
 "use client";
 import React from "react";
-import Image from "next/image";
+import Image, { StaticImageData } from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import axios from "axios";
 import ThreeDAStyle from "@/public/images/model/3D_Animation_Style.jpg";
 import AbsoluteReality from "@/public/images/model/Absolute_Reality_v16.jpg";
 import AlbedoBase from "@/public/images/model/AlbedoBase_XL.jpg";
@@ -38,20 +39,31 @@ const MenuProps = {
   },
 };
 const ImgGenSection = () => {
+  // ---------------prompt-------------------------//
+  const [prompt, setPrompt] = React.useState("");
+  const [prompt_n, setPrompt_N] = React.useState("");
+
+  const handleChangePrompt = (event: SelectChangeEvent) => {
+    setPrompt(event.target.value);
+  };
+  const handleChangePrompt_N = (event: SelectChangeEvent) => {
+    setPrompt_N(event.target.value);
+  };
+
   //----------------Generated Image----------------//
   const [img_url, setImg_Url] = React.useState(NoneImage);
 
   // -------------------------------------------//
-  const [model, setModel] = React.useState("");
-  const [style, setStyle] = React.useState("");
-  const [depth, setDepth] = React.useState(0);
+  const [model, setModel] = React.useState("1e60896f-3c26-4296-8ecc-53e2afecc132");
+  const [presetStyle, setPresetStyle] = React.useState("DYNAMIC");
+  const [depth, setDepth] = React.useState(0.45);
 
-  const [styles, setStyles] = React.useState(styles_real);
+  const [presetStyles, setPresetStyles] = React.useState(styles_unreal);
   const handleChangeModel = (event: SelectChangeEvent) => {
     setModel(event.target.value);
   };
   const handleChangeStyle = (event: SelectChangeEvent) => {
-    setStyle(event.target.value);
+    setPresetStyle(event.target.value);
   };
   const handleChangeDepth = (event: SelectChangeEvent) => {
     setDepth(Number(event.target.value));
@@ -59,15 +71,16 @@ const ImgGenSection = () => {
   const [checked, setChecked] = React.useState(false);
   const handleChangeCheck = (event: React.ChangeEvent<HTMLInputElement>) => {
     setChecked(event.target.checked);
+    setPresetStyle("NONE");
     if (event.target.checked) {
-      setStyles(styles_real);
+      setPresetStyles(styles_real);
     } else {
-      setStyles(styles_unreal);
+      setPresetStyles(styles_unreal);
     }
   };
   //----------------width and height pixel setting slider------------//
-  const [dimension_w, setDimension_w] = React.useState(512);
-  const [dimension_h, setDimension_h] = React.useState(512);
+  const [dimension_w, setDimension_w] = React.useState<number>(512);
+  const [dimension_h, setDimension_h] = React.useState<number>(512);
 
   const handleSliderChange = (event: Event, newValue: number | number[]) => {
     setDimension_w(newValue as number);
@@ -103,6 +116,32 @@ const ImgGenSection = () => {
       setDimension_h(1024);
     }
   };
+
+  const Generate = async() => {
+    const formData = new FormData();
+    formData.append("prompt", prompt);
+    formData.append("negative_prompt", prompt_n);
+    formData.append("model_id", model);
+    formData.append("photoReal", checked);
+    formData.append("photoRealStrength", depth);
+    formData.append("height", dimension_h);
+    formData.append("width", dimension_w);
+    formData.append("presetStyle", presetStyle);
+    // Append init_image and isInit_Image
+
+    await axios
+        .post("http://localhost:5000/api/image/leonardo", formData, {})
+        .then((response) => {
+          setImg_Url(response.data);
+        })
+        .catch((err) => {
+          console.error(err);
+          // setNetworkError("Network Error! Please try again later.");
+        });
+  };
+
+  // console.log("style---------->", style);
+  // console.log("prompt_n---------->", prompt_n);
 
   return (
     <section
@@ -141,7 +180,7 @@ const ImgGenSection = () => {
               >
                 <InputLabel
                   id="demo-simple-select-helper-label"
-                  style={{ color: "white" }}
+                  sx={{ color: "white" }}
                 >
                   Model
                 </InputLabel>
@@ -155,9 +194,9 @@ const ImgGenSection = () => {
                   sx={{ color: "white" }}
                   MenuProps={MenuProps}
                 >
-                  {models.map((model) => {
+                  {models.map((model, index) => {
                     return (
-                      <MenuItem value={model.modelId}>
+                      <MenuItem key={index} value={model.modelId}>
                         <Image
                           src={model.modelImage}
                           alt="Image"
@@ -187,22 +226,22 @@ const ImgGenSection = () => {
               >
                 <InputLabel
                   id="demo-simple-select-helper-label"
-                  style={{ color: "white" }}
+                  sx={{ color: "white" }}
                 >
                   Style
                 </InputLabel>
                 <Select
                   labelId="demo-simple-select-helper-label"
                   id="demo-simple-select-helper"
-                  value={style}
+                  value={presetStyle}
                   label="style"
                   name="style"
                   onChange={handleChangeStyle}
                   sx={{ color: "white" }}
                   MenuProps={MenuProps}
                 >
-                  {styles.map((it) => {
-                    return <MenuItem value={it}>{it}</MenuItem>;
+                  {presetStyles.map((it, index) => {
+                    return <MenuItem key={index} value={it}>{it}</MenuItem>;
                   })}
                 </Select>
               </FormControl>
@@ -234,7 +273,7 @@ const ImgGenSection = () => {
                 >
                   <InputLabel
                     id="demo-simple-select-helper-label"
-                    style={{ color: "white" }}
+                    sx={{ color: "white" }}
                   >
                     Depth of Field
                   </InputLabel>
@@ -242,7 +281,7 @@ const ImgGenSection = () => {
                     labelId="demo-simple-select-helper-label"
                     id="demo-simple-select-helper"
                     value={String(depth)}
-                    label="depth"
+                    label="depth of field"
                     name="depth"
                     onChange={handleChangeDepth}
                     sx={{ color: "white" }}
@@ -256,7 +295,7 @@ const ImgGenSection = () => {
               </div>
             </div>
             <div className="shop-sidebar-single shop-rating">
-              <h5 style={{ fontFamily: "sans-serif" }}>Input Dimention</h5>
+              <h5 style={{ fontFamily: "sans-serif" }}>Input Dimension</h5>
               <div
                 className="row container"
                 style={{ alignItems: "center", rowGap: "10px" }}
@@ -313,9 +352,7 @@ const ImgGenSection = () => {
                 </div>
               </div>
             </div>
-            <div className="shop-sidebar-single shop-rating">
-                
-            </div>
+            <div className="shop-sidebar-single shop-rating"></div>
           </div>
         </div>
         <div className="col-12 col-lg-7">
@@ -340,6 +377,7 @@ const ImgGenSection = () => {
                       color: "white",
                     },
                   }}
+                  onChange={()=>{handleChangePrompt}}
                 />
               </div>
               <div className="col-12 col-lg-2">
@@ -347,6 +385,7 @@ const ImgGenSection = () => {
                   variant="contained"
                   color="success"
                   endIcon={<SendIcon />}
+                  onClick={Generate}
                 >
                   Generate
                 </Button>
@@ -363,6 +402,7 @@ const ImgGenSection = () => {
                       color: "white",
                     },
                   }}
+                  onChange={()=>{handleChangePrompt_N}}
                 />
               </div>
               <div className="col-12 col-lg-12">
@@ -398,7 +438,15 @@ const ImgGenSection = () => {
     </section>
   );
 };
-const models = [
+
+type Model = {
+  id : Number,
+  modelName: string,
+  modelImage: StaticImageData,
+  modelId: string
+}
+
+const models:Model[] = [
   {
     id: 1,
     modelName: "Leonardo Diffusion XL",
@@ -454,7 +502,7 @@ const models = [
     modelId: "b63f7119-31dc-4540-969b-2a9df997e173",
   },
 ];
-const styles_unreal = [
+const styles_unreal: string[] = [
   "ANIME",
   "CREATIVE",
   "DYNAMIC",
@@ -466,7 +514,10 @@ const styles_unreal = [
   "RENDER_3D",
   "SKETCH_BW",
   "SKETCH_COLOR",
+  "CINEMATIC",
+  "CREATIVE",
+  "VIBRANT",
   "NONE",
 ];
-const styles_real = ["CINEMATIC", "CREATIVE", "VIBRANT", "NONE"];
+const styles_real: string[] = ["CINEMATIC", "CREATIVE", "VIBRANT", "NONE"];
 export default ImgGenSection;
